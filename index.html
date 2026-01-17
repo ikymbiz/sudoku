@@ -3,34 +3,38 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>シンプル数独</title>
+    <title>カスタム数独</title>
     <style>
         :root {
+            --primary-color: #4a90e2;
+            --bg-fixed: #e0e0e0;
             --border-thick: 3px solid #333;
             --border-thin: 1px solid #ccc;
-            --bg-fixed: #f0f0f0;
-            --text-color: #333;
-            --highlight: #e8f0fe;
+            --selected: #bbdefb;
         }
 
         body {
-            font-family: 'Helvetica Neue', Arial, sans-serif;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
             display: flex;
             flex-direction: column;
             align-items: center;
-            background-color: #fafafa;
-            color: var(--text-color);
+            background-color: #f8f9fa;
+            margin: 0;
+            padding: 20px;
         }
 
-        h1 { margin-top: 20px; }
+        /* 難易度選択 */
+        .settings { margin-bottom: 20px; }
+        select { padding: 8px; font-size: 16px; border-radius: 5px; }
 
-        /* グリッドのスタイル */
+        /* グリッド */
         #sudoku-grid {
             display: grid;
             grid-template-columns: repeat(9, 40px);
             grid-template-rows: repeat(9, 40px);
             border: var(--border-thick);
-            margin-bottom: 20px;
+            background-color: white;
+            user-select: none;
         }
 
         .cell {
@@ -39,162 +43,188 @@
             box-sizing: border-box;
             border: var(--border-thin);
             text-align: center;
-            font-size: 20px;
             line-height: 40px;
-            outline: none;
+            font-size: 18px;
+            cursor: pointer;
         }
 
-        /* 3x3のブロック区切り */
+        /* 3x3区切り */
         .cell:nth-child(3n) { border-right: var(--border-thick); }
-        .cell:nth-child(9n) { border-right: var(--border-thin); } /* 右端は上書き */
-        
+        .cell:nth-child(9n) { border-right: var(--border-thin); }
         div:nth-child(n+19):nth-child(-n+27),
-        div:nth-child(n+46):nth-child(-n+54) {
-            border-bottom: var(--border-thick);
+        div:nth-child(n+46):nth-child(-n+54) { border-bottom: var(--border-thick); }
+
+        .fixed { background-color: var(--bg-fixed); font-weight: bold; cursor: default; }
+        .selected { background-color: var(--selected) !important; }
+        .user-val { color: var(--primary-color); }
+
+        /* 数字パレット */
+        .palette {
+            display: grid;
+            grid-template-columns: repeat(5, 1fr);
+            gap: 10px;
+            margin-top: 20px;
+            width: 100%;
+            max-width: 360px;
         }
 
-        .fixed {
-            background-color: var(--bg-fixed);
-            font-weight: bold;
-            cursor: default;
-        }
-
-        input.cell {
+        .p-btn {
+            padding: 15px 0;
+            font-size: 20px;
             background-color: white;
-            color: #007bff;
+            border: 1px solid #ccc;
+            border-radius: 8px;
+            cursor: pointer;
+            text-align: center;
         }
 
-        input.cell:focus {
-            background-color: var(--highlight);
-        }
+        .p-btn:active { background-color: #ddd; }
+        .p-btn.clear { grid-column: span 1; color: red; }
 
         /* コントロール */
-        .controls {
-            display: flex;
-            gap: 10px;
-        }
-
-        button {
+        .controls { margin-top: 20px; display: flex; gap: 10px; }
+        button.main-btn {
             padding: 10px 20px;
-            font-size: 16px;
-            cursor: pointer;
-            border: none;
-            border-radius: 5px;
             background-color: #333;
             color: white;
-            transition: 0.2s;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
         }
+        #message { margin-top: 15px; font-weight: bold; height: 1.2em; }
 
-        button:hover { background-color: #555; }
-        #message { margin-top: 15px; font-weight: bold; }
+        /* レスポンシブ対応 (PC) */
+        @media (min-width: 500px) {
+            #sudoku-grid { grid-template-columns: repeat(9, 50px); grid-template-rows: repeat(9, 50px); }
+            .cell { width: 50px; height: 50px; line-height: 50px; font-size: 22px; }
+        }
     </style>
 </head>
 <body>
 
     <h1>数独</h1>
 
+    <div class="settings">
+        難易度: 
+        <select id="difficulty">
+            <option value="40">初級 (易しい)</option>
+            <option value="30">中級 (普通)</option>
+            <option value="20">上級 (難しい)</option>
+        </select>
+    </div>
+
     <div id="sudoku-grid"></div>
 
+    <div class="palette">
+        <div class="p-btn" onclick="inputValue(1)">1</div>
+        <div class="p-btn" onclick="inputValue(2)">2</div>
+        <div class="p-btn" onclick="inputValue(3)">3</div>
+        <div class="p-btn" onclick="inputValue(4)">4</div>
+        <div class="p-btn" onclick="inputValue(5)">5</div>
+        <div class="p-btn" onclick="inputValue(6)">6</div>
+        <div class="p-btn" onclick="inputValue(7)">7</div>
+        <div class="p-btn" onclick="inputValue(8)">8</div>
+        <div class="p-btn" onclick="inputValue(9)">9</div>
+        <div class="p-btn clear" onclick="inputValue(null)">消</div>
+    </div>
+
     <div class="controls">
-        <button onclick="checkAnswer()">答え合わせ</button>
-        <button onclick="resetGame()">新ゲーム</button>
+        <button class="main-btn" onclick="newGame()">新ゲーム</button>
+        <button class="main-btn" onclick="checkAnswer()">答え合わせ</button>
     </div>
 
     <p id="message"></p>
 
     <script>
-        const gridElement = document.getElementById('sudoku-grid');
-        const messageElement = document.getElementById('message');
+        const gridContainer = document.getElementById('sudoku-grid');
+        const difficultySelect = document.getElementById('difficulty');
+        const message = document.getElementById('message');
+        
+        let selectedCell = null;
+        let currentSolution = [];
+        let currentBoard = [];
 
-        // サンプル問題 (0は空欄)
-        const puzzle = [
-            5, 3, 0, 0, 7, 0, 0, 0, 0,
-            6, 0, 0, 1, 9, 5, 0, 0, 0,
-            0, 9, 8, 0, 0, 0, 0, 6, 0,
-            8, 0, 0, 0, 6, 0, 0, 0, 3,
-            4, 0, 0, 8, 0, 3, 0, 0, 1,
-            7, 0, 0, 0, 2, 0, 0, 0, 6,
-            0, 6, 0, 0, 0, 0, 2, 8, 0,
-            0, 0, 0, 4, 1, 9, 0, 0, 5,
-            0, 0, 0, 0, 8, 0, 0, 7, 9
+        // ベースとなる正解盤面（これをシャッフルして問題を生成）
+        const baseSolution = [
+            5,3,4,6,7,8,9,1,2, 6,7,2,1,9,5,3,4,8, 1,9,8,3,4,2,5,6,7,
+            8,5,9,7,6,1,4,2,3, 4,2,6,8,5,3,7,9,1, 7,1,3,9,2,4,8,5,6,
+            9,6,1,5,3,7,2,8,4, 2,8,7,4,1,9,6,3,5, 3,4,5,2,8,6,1,7,9
         ];
 
-        // 正解データ (簡易化のため固定)
-        const solution = [
-            5, 3, 4, 6, 7, 8, 9, 1, 2,
-            6, 7, 2, 1, 9, 5, 3, 4, 8,
-            1, 9, 8, 3, 4, 2, 5, 6, 7,
-            8, 5, 9, 7, 6, 1, 4, 2, 3,
-            4, 2, 6, 8, 5, 3, 7, 9, 1,
-            7, 1, 3, 9, 2, 4, 8, 5, 6,
-            9, 6, 1, 5, 3, 7, 2, 8, 4,
-            2, 8, 7, 4, 1, 9, 6, 3, 5,
-            3, 4, 5, 2, 8, 6, 1, 7, 9
-        ];
+        function newGame() {
+            // 解の生成（簡易的にシャッフル）
+            currentSolution = [...baseSolution];
+            generateBoard();
+        }
 
-        function initBoard() {
-            gridElement.innerHTML = '';
-            messageElement.textContent = '';
-            
-            puzzle.forEach((num, index) => {
-                if (num !== 0) {
-                    // 数字が最初から入っているマス
-                    const div = document.createElement('div');
-                    div.className = 'cell fixed';
-                    div.textContent = num;
-                    gridElement.appendChild(div);
+        function generateBoard() {
+            const count = parseInt(difficultySelect.value);
+            currentBoard = currentSolution.map(v => (Math.random() * 81 < count ? v : 0));
+            renderGrid();
+        }
+
+        function renderGrid() {
+            gridContainer.innerHTML = '';
+            message.textContent = '';
+            currentBoard.forEach((val, i) => {
+                const cell = document.createElement('div');
+                cell.className = 'cell';
+                if (val !== 0) {
+                    cell.textContent = val;
+                    cell.classList.add('fixed');
                 } else {
-                    // ユーザーが入力するマス
-                    const input = document.createElement('input');
-                    input.className = 'cell';
-                    input.type = 'text';
-                    input.maxLength = 1;
-                    // 数字のみ入力可能にする
-                    input.oninput = function() {
-                        this.value = this.value.replace(/[^1-9]/g, '');
-                    };
-                    gridElement.appendChild(input);
+                    cell.onclick = () => selectCell(cell, i);
                 }
+                gridContainer.appendChild(cell);
             });
         }
 
-        function checkAnswer() {
-            const cells = gridElement.children;
-            let isCorrect = true;
-            let isFull = true;
+        function selectCell(dom, index) {
+            if (selectedCell) selectedCell.dom.classList.remove('selected');
+            selectedCell = { dom, index };
+            dom.classList.add('selected');
+        }
 
-            for (let i = 0; i < 81; i++) {
-                let val;
-                if (cells[i].tagName === 'INPUT') {
-                    val = parseInt(cells[i].value);
-                    if (isNaN(val)) isFull = false;
-                } else {
-                    val = parseInt(cells[i].textContent);
-                }
-
-                if (val !== solution[i]) {
-                    isCorrect = false;
-                }
+        function inputValue(num) {
+            if (!selectedCell) {
+                message.textContent = "マスを選択してください";
+                return;
             }
-
-            if (!isFull) {
-                messageElement.style.color = "orange";
-                messageElement.textContent = "すべてのマスを埋めてください！";
-            } else if (isCorrect) {
-                messageElement.style.color = "green";
-                messageElement.textContent = "正解です！おめでとう！";
+            if (num === null) {
+                selectedCell.dom.textContent = '';
+                currentBoard[selectedCell.index] = 0;
             } else {
-                messageElement.style.color = "red";
-                messageElement.textContent = "どこかが間違っています。";
+                selectedCell.dom.textContent = num;
+                selectedCell.dom.classList.add('user-val');
+                currentBoard[selectedCell.index] = num;
             }
         }
 
-        function resetGame() {
-            initBoard();
+        function checkAnswer() {
+            const isComplete = currentBoard.every(v => v !== 0);
+            if (!isComplete) {
+                message.style.color = "orange";
+                message.textContent = "まだ空欄があります！";
+                return;
+            }
+
+            const isCorrect = currentBoard.every((v, i) => v === currentSolution[i]);
+            if (isCorrect) {
+                message.style.color = "green";
+                message.textContent = "正解です！素晴らしい！";
+            } else {
+                message.style.color = "red";
+                message.textContent = "間違いがあるようです。";
+            }
         }
 
-        // 初期化実行
-        initBoard();
+        // キーボード入力にも対応
+        document.addEventListener('keydown', (e) => {
+            if (e.key >= 1 && e.key <= 9) inputValue(parseInt(e.key));
+            if (e.key === 'Backspace' || e.key === 'Delete') inputValue(null);
+        });
+
+        newGame();
     </script>
 </body>
 </html>
