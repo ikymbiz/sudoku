@@ -1,0 +1,200 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>シンプル数独</title>
+    <style>
+        :root {
+            --border-thick: 3px solid #333;
+            --border-thin: 1px solid #ccc;
+            --bg-fixed: #f0f0f0;
+            --text-color: #333;
+            --highlight: #e8f0fe;
+        }
+
+        body {
+            font-family: 'Helvetica Neue', Arial, sans-serif;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            background-color: #fafafa;
+            color: var(--text-color);
+        }
+
+        h1 { margin-top: 20px; }
+
+        /* グリッドのスタイル */
+        #sudoku-grid {
+            display: grid;
+            grid-template-columns: repeat(9, 40px);
+            grid-template-rows: repeat(9, 40px);
+            border: var(--border-thick);
+            margin-bottom: 20px;
+        }
+
+        .cell {
+            width: 40px;
+            height: 40px;
+            box-sizing: border-box;
+            border: var(--border-thin);
+            text-align: center;
+            font-size: 20px;
+            line-height: 40px;
+            outline: none;
+        }
+
+        /* 3x3のブロック区切り */
+        .cell:nth-child(3n) { border-right: var(--border-thick); }
+        .cell:nth-child(9n) { border-right: var(--border-thin); } /* 右端は上書き */
+        
+        div:nth-child(n+19):nth-child(-n+27),
+        div:nth-child(n+46):nth-child(-n+54) {
+            border-bottom: var(--border-thick);
+        }
+
+        .fixed {
+            background-color: var(--bg-fixed);
+            font-weight: bold;
+            cursor: default;
+        }
+
+        input.cell {
+            background-color: white;
+            color: #007bff;
+        }
+
+        input.cell:focus {
+            background-color: var(--highlight);
+        }
+
+        /* コントロール */
+        .controls {
+            display: flex;
+            gap: 10px;
+        }
+
+        button {
+            padding: 10px 20px;
+            font-size: 16px;
+            cursor: pointer;
+            border: none;
+            border-radius: 5px;
+            background-color: #333;
+            color: white;
+            transition: 0.2s;
+        }
+
+        button:hover { background-color: #555; }
+        #message { margin-top: 15px; font-weight: bold; }
+    </style>
+</head>
+<body>
+
+    <h1>数独</h1>
+
+    <div id="sudoku-grid"></div>
+
+    <div class="controls">
+        <button onclick="checkAnswer()">答え合わせ</button>
+        <button onclick="resetGame()">新ゲーム</button>
+    </div>
+
+    <p id="message"></p>
+
+    <script>
+        const gridElement = document.getElementById('sudoku-grid');
+        const messageElement = document.getElementById('message');
+
+        // サンプル問題 (0は空欄)
+        const puzzle = [
+            5, 3, 0, 0, 7, 0, 0, 0, 0,
+            6, 0, 0, 1, 9, 5, 0, 0, 0,
+            0, 9, 8, 0, 0, 0, 0, 6, 0,
+            8, 0, 0, 0, 6, 0, 0, 0, 3,
+            4, 0, 0, 8, 0, 3, 0, 0, 1,
+            7, 0, 0, 0, 2, 0, 0, 0, 6,
+            0, 6, 0, 0, 0, 0, 2, 8, 0,
+            0, 0, 0, 4, 1, 9, 0, 0, 5,
+            0, 0, 0, 0, 8, 0, 0, 7, 9
+        ];
+
+        // 正解データ (簡易化のため固定)
+        const solution = [
+            5, 3, 4, 6, 7, 8, 9, 1, 2,
+            6, 7, 2, 1, 9, 5, 3, 4, 8,
+            1, 9, 8, 3, 4, 2, 5, 6, 7,
+            8, 5, 9, 7, 6, 1, 4, 2, 3,
+            4, 2, 6, 8, 5, 3, 7, 9, 1,
+            7, 1, 3, 9, 2, 4, 8, 5, 6,
+            9, 6, 1, 5, 3, 7, 2, 8, 4,
+            2, 8, 7, 4, 1, 9, 6, 3, 5,
+            3, 4, 5, 2, 8, 6, 1, 7, 9
+        ];
+
+        function initBoard() {
+            gridElement.innerHTML = '';
+            messageElement.textContent = '';
+            
+            puzzle.forEach((num, index) => {
+                if (num !== 0) {
+                    // 数字が最初から入っているマス
+                    const div = document.createElement('div');
+                    div.className = 'cell fixed';
+                    div.textContent = num;
+                    gridElement.appendChild(div);
+                } else {
+                    // ユーザーが入力するマス
+                    const input = document.createElement('input');
+                    input.className = 'cell';
+                    input.type = 'text';
+                    input.maxLength = 1;
+                    // 数字のみ入力可能にする
+                    input.oninput = function() {
+                        this.value = this.value.replace(/[^1-9]/g, '');
+                    };
+                    gridElement.appendChild(input);
+                }
+            });
+        }
+
+        function checkAnswer() {
+            const cells = gridElement.children;
+            let isCorrect = true;
+            let isFull = true;
+
+            for (let i = 0; i < 81; i++) {
+                let val;
+                if (cells[i].tagName === 'INPUT') {
+                    val = parseInt(cells[i].value);
+                    if (isNaN(val)) isFull = false;
+                } else {
+                    val = parseInt(cells[i].textContent);
+                }
+
+                if (val !== solution[i]) {
+                    isCorrect = false;
+                }
+            }
+
+            if (!isFull) {
+                messageElement.style.color = "orange";
+                messageElement.textContent = "すべてのマスを埋めてください！";
+            } else if (isCorrect) {
+                messageElement.style.color = "green";
+                messageElement.textContent = "正解です！おめでとう！";
+            } else {
+                messageElement.style.color = "red";
+                messageElement.textContent = "どこかが間違っています。";
+            }
+        }
+
+        function resetGame() {
+            initBoard();
+        }
+
+        // 初期化実行
+        initBoard();
+    </script>
+</body>
+</html>
