@@ -11,6 +11,8 @@
             --border-thick: 3px solid #333;
             --border-thin: 1px solid #ccc;
             --selected: #bbdefb;
+            --highlight-line: #f1f7ff;
+            --highlight-same: #fff59d;
         }
 
         body {
@@ -23,7 +25,7 @@
             padding: 20px;
         }
 
-        /* 難易度選択 */
+        /* レベル選択 */
         .settings { margin-bottom: 20px; }
         select { padding: 8px; font-size: 16px; border-radius: 5px; }
 
@@ -49,12 +51,14 @@
         }
 
         /* 3x3区切り */
-        .cell:nth-child(3n) { border-right: var(--border-thick); }
-        .cell:nth-child(9n) { border-right: var(--border-thin); }
-        div:nth-child(n+19):nth-child(-n+27),
-        div:nth-child(n+46):nth-child(-n+54) { border-bottom: var(--border-thick); }
+        #sudoku-grid .cell:nth-child(3n) { border-right: var(--border-thick); }
+        #sudoku-grid .cell:nth-child(9n) { border-right: var(--border-thin); }
+        #sudoku-grid .cell:nth-child(n+19):nth-child(-n+27),
+        #sudoku-grid .cell:nth-child(n+46):nth-child(-n+54) { border-bottom: var(--border-thick); }
 
-        .fixed { background-color: var(--bg-fixed); font-weight: bold; cursor: default; }
+        .fixed { background-color: var(--bg-fixed); font-weight: bold; }
+        .highlight-line { background-color: var(--highlight-line); }
+        .same-number { background-color: var(--highlight-same); }
         .selected { background-color: var(--selected) !important; }
         .user-val { color: var(--primary-color); }
 
@@ -105,11 +109,28 @@
     <h1>数独</h1>
 
     <div class="settings">
-        難易度: 
+        レベル: 
         <select id="difficulty">
-            <option value="40">初級 (易しい)</option>
-            <option value="30">中級 (普通)</option>
-            <option value="20">上級 (難しい)</option>
+            <option value="6">レベル1（空白6マス）</option>
+            <option value="8">レベル2（空白8マス）</option>
+            <option value="10">レベル3（空白10マス）</option>
+            <option value="12">レベル4（空白12マス）</option>
+            <option value="14">レベル5（空白14マス）</option>
+            <option value="16">レベル6（空白16マス）</option>
+            <option value="18">レベル7（空白18マス）</option>
+            <option value="20">レベル8（空白20マス）</option>
+            <option value="23">レベル9（空白23マス）</option>
+            <option value="26">レベル10（空白26マス）</option>
+            <option value="29">レベル11（空白29マス）</option>
+            <option value="32">レベル12（空白32マス）</option>
+            <option value="36">レベル13（空白36マス）</option>
+            <option value="40">レベル14（空白40マス）</option>
+            <option value="44">レベル15（空白44マス）</option>
+            <option value="48">レベル16（空白48マス）</option>
+            <option value="52">レベル17（空白52マス）</option>
+            <option value="56">レベル18（空白56マス）</option>
+            <option value="60">レベル19（空白60マス）</option>
+            <option value="64">レベル20（空白64マス）</option>
         </select>
     </div>
 
@@ -143,8 +164,9 @@
         let selectedCell = null;
         let currentSolution = [];
         let currentBoard = [];
+        let fixedCells = [];
 
-        // ベースとなる正解盤面（これをシャッフルして問題を生成）
+        // ベースとなる正解盤面（これをもとに問題を生成）
         const baseSolution = [
             5,3,4,6,7,8,9,1,2, 6,7,2,1,9,5,3,4,8, 1,9,8,3,4,2,5,6,7,
             8,5,9,7,6,1,4,2,3, 4,2,6,8,5,3,7,9,1, 7,1,3,9,2,4,8,5,6,
@@ -152,52 +174,125 @@
         ];
 
         function newGame() {
-            // 解の生成（簡易的にシャッフル）
+            // 解の生成（現在は固定の完成盤を使用）
             currentSolution = [...baseSolution];
+            selectedCell = null;
             generateBoard();
         }
 
+        function shuffle(array) {
+            for (let i = array.length - 1; i > 0; i--) {
+                const j = Math.floor(Math.random() * (i + 1));
+                [array[i], array[j]] = [array[j], array[i]];
+            }
+            return array;
+        }
+
         function generateBoard() {
-            const count = parseInt(difficultySelect.value);
-            currentBoard = currentSolution.map(v => (Math.random() * 81 < count ? v : 0));
+            const blankCount = parseInt(difficultySelect.value, 10);
+            const blankIndices = shuffle([...Array(81).keys()]).slice(0, blankCount);
+            const blankSet = new Set(blankIndices);
+
+            currentBoard = Array(81).fill(0);
+            fixedCells = Array(81).fill(false);
+
+            currentSolution.forEach((value, i) => {
+                if (!blankSet.has(i)) {
+                    currentBoard[i] = value;
+                    fixedCells[i] = true;
+                }
+            });
+
             renderGrid();
         }
 
         function renderGrid() {
             gridContainer.innerHTML = '';
             message.textContent = '';
+            message.style.color = '';
+
             currentBoard.forEach((val, i) => {
                 const cell = document.createElement('div');
                 cell.className = 'cell';
+                cell.dataset.index = i;
+                cell.onclick = () => selectCell(cell, i);
+
                 if (val !== 0) {
                     cell.textContent = val;
-                    cell.classList.add('fixed');
-                } else {
-                    cell.onclick = () => selectCell(cell, i);
                 }
+                if (fixedCells[i]) {
+                    cell.classList.add('fixed');
+                } else if (val !== 0) {
+                    cell.classList.add('user-val');
+                }
+
                 gridContainer.appendChild(cell);
             });
         }
 
         function selectCell(dom, index) {
-            if (selectedCell) selectedCell.dom.classList.remove('selected');
             selectedCell = { dom, index };
-            dom.classList.add('selected');
+            message.textContent = '';
+            message.style.color = '';
+            applyHighlights();
+        }
+
+        function clearHighlights() {
+            document.querySelectorAll('.cell').forEach(cell => {
+                cell.classList.remove('selected', 'highlight-line', 'same-number');
+            });
+        }
+
+        function applyHighlights() {
+            clearHighlights();
+            if (!selectedCell) return;
+
+            const selectedIndex = selectedCell.index;
+            const selectedRow = Math.floor(selectedIndex / 9);
+            const selectedCol = selectedIndex % 9;
+            const selectedValue = currentBoard[selectedIndex];
+
+            document.querySelectorAll('.cell').forEach((cell, i) => {
+                const row = Math.floor(i / 9);
+                const col = i % 9;
+
+                if (row === selectedRow || col === selectedCol) {
+                    cell.classList.add('highlight-line');
+                }
+                if (selectedValue !== 0 && currentBoard[i] === selectedValue) {
+                    cell.classList.add('same-number');
+                }
+            });
+
+            selectedCell.dom.classList.add('selected');
         }
 
         function inputValue(num) {
             if (!selectedCell) {
+                message.style.color = "orange";
                 message.textContent = "マスを選択してください";
                 return;
             }
+
+            if (fixedCells[selectedCell.index]) {
+                message.style.color = "orange";
+                message.textContent = "固定マスは変更できません";
+                return;
+            }
+
             if (num === null) {
                 selectedCell.dom.textContent = '';
+                selectedCell.dom.classList.remove('user-val');
                 currentBoard[selectedCell.index] = 0;
             } else {
                 selectedCell.dom.textContent = num;
                 selectedCell.dom.classList.add('user-val');
                 currentBoard[selectedCell.index] = num;
             }
+
+            message.textContent = '';
+            message.style.color = '';
+            applyHighlights();
         }
 
         function checkAnswer() {
@@ -218,9 +313,12 @@
             }
         }
 
+        // 難易度を変更したら、そのレベルで新しい問題を作る
+        difficultySelect.addEventListener('change', newGame);
+
         // キーボード入力にも対応
         document.addEventListener('keydown', (e) => {
-            if (e.key >= 1 && e.key <= 9) inputValue(parseInt(e.key));
+            if (e.key >= 1 && e.key <= 9) inputValue(parseInt(e.key, 10));
             if (e.key === 'Backspace' || e.key === 'Delete') inputValue(null);
         });
 
