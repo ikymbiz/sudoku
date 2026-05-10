@@ -2,7 +2,7 @@
 <html lang="ja">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
     <title>カスタム数独</title>
     <style>
         :root {
@@ -15,38 +15,62 @@
             --highlight-same: #fff59d;
         }
 
+        html, body {
+            height: 100%;
+            overflow: hidden;
+        }
+
         body {
+            --cell-size: min(10.4vw, calc((100dvh - 230px) / 9), 50px);
             font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
             display: flex;
             flex-direction: column;
             align-items: center;
             background-color: #f8f9fa;
             margin: 0;
-            padding: 20px;
+            padding: clamp(4px, 1.3dvh, 10px);
+            box-sizing: border-box;
+            height: 100dvh;
+            gap: clamp(4px, 1dvh, 10px);
+            overscroll-behavior: none;
+        }
+
+        h1 {
+            margin: 0;
+            font-size: clamp(20px, 4dvh, 32px);
+            line-height: 1.1;
         }
 
         /* レベル選択 */
-        .settings { margin-bottom: 20px; }
-        select { padding: 8px; font-size: 16px; border-radius: 5px; }
+        .settings {
+            margin: 0;
+            font-size: clamp(13px, 2.2dvh, 16px);
+        }
+        select {
+            padding: clamp(3px, 0.8dvh, 8px) 8px;
+            font-size: clamp(13px, 2.2dvh, 16px);
+            border-radius: 5px;
+        }
 
         /* グリッド */
         #sudoku-grid {
             display: grid;
-            grid-template-columns: repeat(9, 40px);
-            grid-template-rows: repeat(9, 40px);
+            grid-template-columns: repeat(9, var(--cell-size));
+            grid-template-rows: repeat(9, var(--cell-size));
             border: var(--border-thick);
             background-color: white;
             user-select: none;
+            flex: 0 0 auto;
         }
 
         .cell {
-            width: 40px;
-            height: 40px;
+            width: var(--cell-size);
+            height: var(--cell-size);
             box-sizing: border-box;
             border: var(--border-thin);
             text-align: center;
-            line-height: 40px;
-            font-size: 18px;
+            line-height: var(--cell-size);
+            font-size: clamp(16px, calc(var(--cell-size) * 0.45), 24px);
             cursor: pointer;
         }
 
@@ -66,41 +90,62 @@
         .palette {
             display: grid;
             grid-template-columns: repeat(5, 1fr);
-            gap: 10px;
-            margin-top: 20px;
-            width: 100%;
-            max-width: 360px;
+            gap: clamp(5px, 1dvh, 8px);
+            margin-top: 0;
+            width: min(100%, calc(var(--cell-size) * 9 + 6px));
+            max-width: 460px;
+            flex: 0 0 auto;
         }
 
         .p-btn {
-            padding: 15px 0;
-            font-size: 20px;
+            height: clamp(30px, 5.5dvh, 46px);
+            font-size: clamp(16px, 3dvh, 20px);
             background-color: white;
             border: 1px solid #ccc;
             border-radius: 8px;
             cursor: pointer;
             text-align: center;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            box-sizing: border-box;
         }
 
         .p-btn:active { background-color: #ddd; }
         .p-btn.clear { grid-column: span 1; color: red; }
 
         /* コントロール */
-        .controls { margin-top: 20px; display: flex; gap: 10px; }
+        .controls {
+            margin-top: 0;
+            display: flex;
+            gap: 8px;
+            flex: 0 0 auto;
+        }
         button.main-btn {
-            padding: 10px 20px;
+            padding: clamp(6px, 1.4dvh, 10px) clamp(12px, 4vw, 20px);
             background-color: #333;
             color: white;
             border: none;
             border-radius: 5px;
             cursor: pointer;
+            font-size: clamp(13px, 2.2dvh, 16px);
         }
-        #message { margin-top: 15px; font-weight: bold; height: 1.2em; }
+        #message {
+            margin: 0;
+            font-weight: bold;
+            height: 1.2em;
+            font-size: clamp(13px, 2.2dvh, 16px);
+            flex: 0 0 auto;
+        }
 
-        /* レスポンシブ対応 (PC) */
-        @media (min-width: 500px) {
-            #sudoku-grid { grid-template-columns: repeat(9, 50px); grid-template-rows: repeat(9, 50px); }
-            .cell { width: 50px; height: 50px; line-height: 50px; font-size: 22px; }
+        @media (max-height: 620px) {
+            body { --cell-size: min(10vw, calc((100dvh - 190px) / 9), 42px); }
+            .p-btn { height: clamp(26px, 5dvh, 34px); }
+            .controls { gap: 6px; }
+        }
+
+        @media (min-width: 700px) and (min-height: 760px) {
+            body { --cell-size: 50px; }
         }
     </style>
 </head>
